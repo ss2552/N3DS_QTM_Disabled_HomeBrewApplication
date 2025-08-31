@@ -1,4 +1,0 @@
-[submodule "ntrhr"]
-	path = ntr-hr
-	url = https://github.com/xzn/ntr-hr.git
-	branch = refactor1

@@ -196,6 +196,12 @@ void rpDoQTMPatchAndToggle(void)
 
 
 
+
+
+
+
+    // if ( ! qtmPatched ) { ... }
+
     // QTMをプロテクトリモートで確認
     ret = rtCheckRemoteMemory(hProcess, remotePC, RP_QTM_HDR_SIZE, MEMPERM_READWRITE | MEMPERM_EXECUTE);
     if (ret != 0)
@@ -210,10 +216,8 @@ void rpDoQTMPatchAndToggle(void)
     u32 qtmPayloadAddrMin = qtmBinEnd - 0x800;
     u32 qtmPayloadAddrTry = qtmBinEnd - RP_QTM_PAYLOAD_SIZE;
 
-    {
-        retry:
-
-
+    while (1) {
+retry:
 
         // メモリの空き容量があるか
         if (qtmPayloadAddrTry < qtmPayloadAddrMin){
@@ -242,14 +246,16 @@ void rpDoQTMPatchAndToggle(void)
                 goto retry;
             }
         }
+
+        break;
     }
 
-
+    // 1 
+    print("# %ld", qtmPayloadAddr);
     ret = rtCheckRemoteMemory(hProcess, qtmPayloadAddrTry, RP_QTM_PAYLOAD_SIZE, MEMPERM_READWRITE | MEMPERM_EXECUTE);
     if (ret != 0)
     {
         print("@QTM protectRemoteMemory for payload failed: %ld", ret);
-        print("qtmPayloadAddr: %ld 読み書きと読み実行: %ld", qtmPayloadAddr, MEMPERM_READWRITE | MEMPERM_EXECUTE);
         goto final_unlock;
     }
 
