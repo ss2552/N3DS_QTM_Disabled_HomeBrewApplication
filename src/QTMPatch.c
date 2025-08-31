@@ -17,80 +17,56 @@ Handle hProcess;
 u32 remotePC = 0x00119a48;
 s32 ret;
 
-
-static u32 currentPid = 0;
-u32 getCurrentProcessId(void)
-{
-	if (currentPid != 0)
-		return currentPid;
-	svcGetProcessId(&currentPid, CUR_PROCESS_HANDLE);
-	return currentPid;
-}
-
-u32 protectRemoteMemory(Handle hProcess, void *addr, u32 size, u32 perm)
-{
-	return svcControlProcessMemory(hProcess, (u32)addr, 0, size, MEMOP_PROT, perm);
-}
-
-u32 copyRemoteMemoryTimeout(Handle hDst, void *ptrDst, Handle hSrc, void *ptrSrc, u32 size, s64 timeout)
-{
-	u8 dmaConfig[sizeof(DmaConfig)] = {-1, 0, 4};
-	u32 hdma = 0;
-	u32 ret;
-
-	ret = svcFlushProcessDataCache(hSrc, (u32)ptrSrc, size);
-	if (ret != 0)
-	{
-		print("@svcFlushProcessDataCache src failed: %lu", ret);
-		return ret;
-	}
-	ret = svcFlushProcessDataCache(hDst, (u32)ptrDst, size);
-	if (ret != 0)
-	{
-		print("@svcFlushProcessDataCache dst failed: %lu", ret);
-		return ret;
-	}
-
-	ret = svcStartInterProcessDma(&hdma, hDst, (u32)ptrDst, hSrc, (u32)ptrSrc, size, (DmaConfig *)dmaConfig);
-	if (ret != 0)
-	{
-		print("@svcStartInterProcessDma failed: %lu", ret);
-		return ret;
-	}
-	ret = svcWaitSynchronization(hdma, timeout);
-	if (ret != 0)
-	{
-		print("@copyRemoteMemory time out (or error) %lu", ret);
-		svcCloseHandle(hdma);
-		return 1;
-	}
-
-	svcCloseHandle(hdma);
-	ret = svcInvalidateProcessDataCache(hDst, (u32)ptrDst, size);
-	if (ret != 0)
-	{
-		print("@svcInvalidateProcessDataCache failed: %lu", ret);
-		return ret;
-	}
-	return 0;
-}
-
-#define COPY_REMOTE_MEMORY_TIMEOUT (-1)
-
 u32 copyRemoteMemory(Handle hDst, void *ptrDst, Handle hSrc, void *ptrSrc, u32 size)
 {
+    u32 copyRemoteMemoryTimeout(Handle hDst, void *ptrDst, Handle hSrc, void *ptrSrc, u32 size, s64 timeout)
+    {
+        u8 dmaConfig[sizeof(DmaConfig)] = {-1, 0, 4};
+        u32 hdma = 0;
+        u32 ret;
+
+        ret = svcFlushProcessDataCache(hSrc, (u32)ptrSrc, size);
+        if (ret != 0)
+        {
+            print("@svcFlushProcessDataCache src failed: %lu", ret);
+            return ret;
+        }
+        ret = svcFlushProcessDataCache(hDst, (u32)ptrDst, size);
+        if (ret != 0)
+        {
+            print("@svcFlushProcessDataCache dst failed: %lu", ret);
+            return ret;
+        }
+
+        ret = svcStartInterProcessDma(&hdma, hDst, (u32)ptrDst, hSrc, (u32)ptrSrc, size, (DmaConfig *)dmaConfig);
+        if (ret != 0)
+        {
+            print("@svcStartInterProcessDma failed: %lu", ret);
+            return ret;
+        }
+        ret = svcWaitSynchronization(hdma, timeout);
+        if (ret != 0)
+        {
+            print("@copyRemoteMemory time out (or error) %lu", ret);
+            svcCloseHandle(hdma);
+            return 1;
+        }
+
+        svcCloseHandle(hdma);
+        ret = svcInvalidateProcessDataCache(hDst, (u32)ptrDst, size);
+        if (ret != 0)
+        {
+            print("@svcInvalidateProcessDataCache failed: %lu", ret);
+            return ret;
+        }
+        return 0;
+    }
+#define COPY_REMOTE_MEMORY_TIMEOUT (-1)
 	return copyRemoteMemoryTimeout(hDst, ptrDst, hSrc, ptrSrc, size, COPY_REMOTE_MEMORY_TIMEOUT);
 }
 
-#define PAGE_OF_ADDR(addr) ((addr) / 0x1000 * 0x1000)
-
-u32 rtGetPageOfAddress(u32 addr)
-{
-	return PAGE_OF_ADDR(addr);
-}
-
 u32 rtCheckRemoteMemory(Handle hProcess, u32 addr, u32 size, MemPerm perm){
-MemInfo memInfo;
+    MemInfo memInfo;
 	PageInfo pageInfo;
 	s32 ret = svcQueryMemory(&memInfo, &pageInfo, addr);
 	if (ret != 0)
@@ -100,7 +76,7 @@ MemInfo memInfo;
 	}
 	if (memInfo.perm == 0)
 	{
-        print("1");
+        print("if ( memInfo.perm == 0) { ... }");
 		return -1;
 	}
 	if (memInfo.base_addr + memInfo.size < addr + size)
@@ -120,10 +96,20 @@ MemInfo memInfo;
 
 	u32 startPage, endPage;
 
+    
+    u32 rtGetPageOfAddress(u32 addr)
+    {
+        // PAGE_OF_ADDR
+        return ((addr) / 0x1000 * 0x1000);
+    }
 	startPage = rtGetPageOfAddress(addr);
 	endPage = rtGetPageOfAddress(addr + size - 1);
 	size = endPage - startPage + 0x1000;
-
+    
+    u32 protectRemoteMemory(Handle hProcess, void *addr, u32 size, u32 perm)
+    {
+        return svcControlProcessMemory(hProcess, (u32)addr, 0, size, MEMOP_PROT, perm);
+    }
 	ret = protectRemoteMemory(hProcess, (void *)startPage, size, perm);
     print("3");
 	return ret;
@@ -225,10 +211,11 @@ retry:
             goto final_unlock;
         }
 
-
+        print("# 1 %lx", qtmPayloadAddrTry);
 
         u8 tmp[RP_QTM_PAYLOAD_SIZE] = {0};
 
+        // qtmをコピー
         ret = copyRemoteMemory(CUR_PROCESS_HANDLE, tmp, hProcess, (void *)qtmPayloadAddrTry, RP_QTM_PAYLOAD_SIZE);
         if (ret != 0)
         {
@@ -237,12 +224,15 @@ retry:
         }
 
 
-
+        u8 count = 0;
+        // 何これ
         for (unsigned i = 0; i < RP_QTM_PAYLOAD_SIZE / sizeof(u32); ++i)
         {
             if (((u32 *)tmp)[i])
             {
                 qtmPayloadAddrTry -= RP_QTM_PAYLOAD_SIZE;
+                count++;
+                // print("# 2 %lx", qtmPayloadAddrTry);
                 goto retry;
             }
         }
@@ -251,7 +241,7 @@ retry:
     }
 
     // 1 
-    print("# %ld", qtmPayloadAddr);
+    print("# 3 %lx  %ld", qtmPayloadAddrTry, count);
     ret = rtCheckRemoteMemory(hProcess, qtmPayloadAddrTry, RP_QTM_PAYLOAD_SIZE, MEMPERM_READWRITE | MEMPERM_EXECUTE);
     if (ret != 0)
     {
@@ -278,7 +268,7 @@ retry:
     }
 
     qtmPayloadAddr = qtmPayloadAddrTry;
-
+    print("qtmPayloadAddr %lx", qtmPayloadAddr);
 
 
     // パッチ
