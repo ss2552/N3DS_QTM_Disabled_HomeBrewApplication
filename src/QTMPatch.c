@@ -201,6 +201,8 @@ void rpDoQTMPatchAndToggle(void)
     u32 qtmPayloadAddrMin = qtmBinEnd - 0x800;
     u32 qtmPayloadAddrTry = qtmBinEnd - RP_QTM_PAYLOAD_SIZE;
 
+    u8 count = 0;
+
     while (1) {
 retry:
 
@@ -222,8 +224,6 @@ retry:
             goto final_unlock;
         }
 
-
-        u8 count = 0;
         // 何これ
         for (unsigned i = 0; i < RP_QTM_PAYLOAD_SIZE / sizeof(u32); ++i)
         {
