@@ -111,7 +111,6 @@ u32 rtCheckRemoteMemory(Handle hProcess, u32 addr, u32 size, MemPerm perm){
         return svcControlProcessMemory(hProcess, (u32)addr, 0, size, MEMOP_PROT, perm);
     }
 	ret = protectRemoteMemory(hProcess, (void *)startPage, size, perm);
-    print("3");
 	return ret;
 }
 
