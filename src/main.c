@@ -33,8 +33,8 @@ int main(void)
 	topScreenConsole.fg = WHITE_COLOR;
 
     hidScanInput();
-    bool test_key = hidKeysHeld() & KEY_A;
-    if(!test_key)
+    bool fake_success_screen_show_key = hidKeysHeld() & KEY_A;
+    if(!fake_success_screen_show_key)
         rpDoQTMPatchAndToggle();
     else{
         qtmDisabled = 1;
@@ -57,7 +57,7 @@ int main(void)
 	return 0;
 }
 
-u8 y = 0;
+static u8 y = 0;
 
 void print(char *msg, ...){
     va_list args;

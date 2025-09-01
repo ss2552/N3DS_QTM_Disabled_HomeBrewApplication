@@ -14,54 +14,50 @@ static int qtmPayloadAddr = 0;
 extern bool qtmDisabled;
 Handle hProcess;
 
-u32 remotePC = 0x00119a48;
 s32 ret;
 
 u32 copyRemoteMemory(Handle hDst, void *ptrDst, Handle hSrc, void *ptrSrc, u32 size)
 {
-    u32 copyRemoteMemoryTimeout(Handle hDst, void *ptrDst, Handle hSrc, void *ptrSrc, u32 size, s64 timeout)
+    // copyRemoteMemoryTimeout
+
+    ret = svcFlushProcessDataCache(hSrc, (u32)ptrSrc, size);
+    if (ret != 0)
     {
-        u8 dmaConfig[sizeof(DmaConfig)] = {-1, 0, 4};
-        u32 hdma = 0;
-
-        ret = svcFlushProcessDataCache(hSrc, (u32)ptrSrc, size);
-        if (ret != 0)
-        {
-            print("@svcFlushProcessDataCache src failed: %lu", ret);
-            return ret;
-        }
-        ret = svcFlushProcessDataCache(hDst, (u32)ptrDst, size);
-        if (ret != 0)
-        {
-            print("@svcFlushProcessDataCache dst failed: %lu", ret);
-            return ret;
-        }
-
-        ret = svcStartInterProcessDma(&hdma, hDst, (u32)ptrDst, hSrc, (u32)ptrSrc, size, (DmaConfig *)dmaConfig);
-        if (ret != 0)
-        {
-            print("@svcStartInterProcessDma failed: %lu", ret);
-            return ret;
-        }
-        ret = svcWaitSynchronization(hdma, timeout);
-        if (ret != 0)
-        {
-            print("@copyRemoteMemory time out (or error) %lu", ret);
-            svcCloseHandle(hdma);
-            return 1;
-        }
-
-        svcCloseHandle(hdma);
-        ret = svcInvalidateProcessDataCache(hDst, (u32)ptrDst, size);
-        if (ret != 0)
-        {
-            print("@svcInvalidateProcessDataCache failed: %lu", ret);
-            return ret;
-        }
-        return 0;
+        print("@svcFlushProcessDataCache src failed: %lu", ret);
+        return ret;
     }
-#define COPY_REMOTE_MEMORY_TIMEOUT (-1)
-	return copyRemoteMemoryTimeout(hDst, ptrDst, hSrc, ptrSrc, size, COPY_REMOTE_MEMORY_TIMEOUT);
+    ret = svcFlushProcessDataCache(hDst, (u32)ptrDst, size);
+    if (ret != 0)
+    {
+        print("@svcFlushProcessDataCache dst failed: %lu", ret);
+        return ret;
+    }
+
+    u8 dmaConfig[sizeof(DmaConfig)] = {-1, 0, 4};
+    u32 hdma = 0;
+    ret = svcStartInterProcessDma(&hdma, hDst, (u32)ptrDst, hSrc, (u32)ptrSrc, size, (DmaConfig *)dmaConfig);
+    if (ret != 0)
+    {
+        print("@svcStartInterProcessDma failed: %lu", ret);
+        return ret;
+    }
+    const u8 timeout = -1;
+    ret = svcWaitSynchronization(hdma, timeout);
+    if (ret != 0)
+    {
+        print("@copyRemoteMemory time out (or error) %lu", ret);
+        svcCloseHandle(hdma);
+        return 1;
+    }
+
+    svcCloseHandle(hdma);
+    ret = svcInvalidateProcessDataCache(hDst, (u32)ptrDst, size);
+    if (ret != 0)
+    {
+        print("@svcInvalidateProcessDataCache failed: %lu", ret);
+        return ret;
+    }
+    return 0;
 }
 
 u32 rtCheckRemoteMemory(Handle hProcess, u32 addr, u32 size, MemPerm perm){
@@ -78,17 +74,15 @@ u32 rtCheckRemoteMemory(Handle hProcess, u32 addr, u32 size, MemPerm perm){
         print("memInfo.perm === 0");
 		return -1;
 	}
+    
 	if (memInfo.base_addr + memInfo.size < addr + size)
-	{
-		return -1;
-	}
+	    return -1;
 
 	if (perm & MEMPERM_WRITE)
 		perm |= MEMPERM_READ;
+
 	if ((memInfo.perm & perm) == perm)
-	{
 		return 0;
-	}
 
 	perm |= memInfo.perm;
 
@@ -148,6 +142,8 @@ void rpDoQTMPatchAndToggle(void)
 	}
 
 
+    
+    u32 remotePC = 0x00119a48;
 
 	// ここにQTMのコピーらしい
     ret = copyRemoteMemory(CUR_PROCESS_HANDLE, buf, hProcess, (void *)remotePC, RP_QTM_HDR_SIZE);
