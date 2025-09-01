@@ -23,7 +23,6 @@ u32 copyRemoteMemory(Handle hDst, void *ptrDst, Handle hSrc, void *ptrSrc, u32 s
     {
         u8 dmaConfig[sizeof(DmaConfig)] = {-1, 0, 4};
         u32 hdma = 0;
-        u32 ret;
 
         ret = svcFlushProcessDataCache(hSrc, (u32)ptrSrc, size);
         if (ret != 0)
@@ -68,20 +67,19 @@ u32 copyRemoteMemory(Handle hDst, void *ptrDst, Handle hSrc, void *ptrSrc, u32 s
 u32 rtCheckRemoteMemory(Handle hProcess, u32 addr, u32 size, MemPerm perm){
     MemInfo memInfo;
 	PageInfo pageInfo;
-	s32 ret = svcQueryMemory(&memInfo, &pageInfo, addr);
+	ret = svcQueryMemory(&memInfo, &pageInfo, addr);
 	if (ret != 0)
 	{
-		printf("\x1b[16;10HsvcQueryMemory failed for addr %ld: %ld\n", addr, ret);
+		print("@svcQueryMemory failed for addr %ld: %ld", addr, ret);
 		return ret;
 	}
 	if (memInfo.perm == 0)
 	{
-        print("if ( memInfo.perm == 0) { ... }");
+        print("memInfo.perm === 0");
 		return -1;
 	}
 	if (memInfo.base_addr + memInfo.size < addr + size)
 	{
-        print("2");
 		return -1;
 	}
 
@@ -201,8 +199,6 @@ void rpDoQTMPatchAndToggle(void)
     u32 qtmPayloadAddrMin = qtmBinEnd - 0x800;
     u32 qtmPayloadAddrTry = qtmBinEnd - RP_QTM_PAYLOAD_SIZE;
 
-    u8 count = 0;
-
     while (1) {
 retry:
 
@@ -212,7 +208,7 @@ retry:
             goto final_unlock;
         }
 
-        print("# 1 %lx", qtmPayloadAddrTry);
+        print("# before = %lx", qtmPayloadAddrTry);
 
         u8 tmp[RP_QTM_PAYLOAD_SIZE] = {0};
 
@@ -230,7 +226,6 @@ retry:
             if (((u32 *)tmp)[i])
             {
                 qtmPayloadAddrTry -= RP_QTM_PAYLOAD_SIZE;
-                count++;
                 // print("# 2 %lx", qtmPayloadAddrTry);
                 goto retry;
             }
@@ -240,7 +235,7 @@ retry:
     }
 
     // 1 
-    print("# 3 %lx  %ld", qtmPayloadAddrTry, count);
+    print("# after = %lx", qtmPayloadAddrTry);
     ret = rtCheckRemoteMemory(hProcess, qtmPayloadAddrTry, RP_QTM_PAYLOAD_SIZE, MEMPERM_READWRITE | MEMPERM_EXECUTE);
     if (ret != 0)
     {
