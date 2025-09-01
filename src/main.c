@@ -31,6 +31,8 @@ int main(void)
 	topScreenConsole.bg = ERROR_COLOR;
 	topScreenConsole.fg = WHITE_COLOR;
 
+    consoleClear();
+	
     hidScanInput();
     bool fake_success_screen_show_key = hidKeysHeld() & KEY_A;
     if(!fake_success_screen_show_key)
@@ -40,9 +42,10 @@ int main(void)
         print("Fake Success");
     }
 
+	// qtmを無効にしたら
     if(qtmDisabled){
         topScreenConsole.bg = SUCCESS_COLOR;
-        print("QTM no Disabled: Success");
+        print("QTM: Disabled　Success");
     }
 
 	print("Exit: START Button");
