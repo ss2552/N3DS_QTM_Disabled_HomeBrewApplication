@@ -36,8 +36,10 @@ int main(void)
     bool test_key = hidKeysHeld() & KEY_A;
     if(!test_key)
         rpDoQTMPatchAndToggle();
-    else
+    else{
         qtmDisabled = 1;
+        print("fake Success");
+    }
 
     if(qtmDisabled){
         topScreenConsole.bg = SUCCESS_COLOR;
@@ -63,6 +65,5 @@ void print(char *msg, ...){
     va_start(args, msg);
     vsprintf(s, msg, args);
     printf("\x1b[%u;1H %s", ++y, s);
-    // printf("\x1b[%u;1H - - - - - - - - - - ", y+1);
     va_end(args);
 }
