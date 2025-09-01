@@ -150,6 +150,7 @@ void rpDoQTMPatchAndToggle(void)
     if (ret != 0){
         print("@Read QTM memory at %ld failed: %ld", remotePC, ret);
 		svcCloseHandle(hProcess);
+       return;
     }
 
 
@@ -161,6 +162,7 @@ void rpDoQTMPatchAndToggle(void)
     {
         print("@Unexpected QTM memory content");
 		svcCloseHandle(hProcess);
+        return;
     }
 
 
@@ -171,6 +173,7 @@ void rpDoQTMPatchAndToggle(void)
 	{
 		print("@Locking QTM failed: %ld", ret);
 		svcCloseHandle(hProcess);
+        return;
 	}
 
 
