@@ -62,8 +62,7 @@ void print(char *msg, ...){
     char s[100 ] = {0};
     va_start(args, msg);
     vsprintf(s, msg, args);
-    printf("\x1b[%u;1H %s", y, s);
-    printf("\x1b[%u;1H - - - - - - - - - - ", y+1);
-    y+=2;
+    printf("\x1b[%u;1H %s", ++y, s);
+    // printf("\x1b[%u;1H - - - - - - - - - - ", y+1);
     va_end(args);
 }
