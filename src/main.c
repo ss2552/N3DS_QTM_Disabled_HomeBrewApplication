@@ -37,17 +37,19 @@ int main(void)
         rpDoQTMPatchAndToggle();
     else{
         qtmDisabled = 1;
-        print("fake Success");
+        print("Fake Success");
     }
 
     if(qtmDisabled){
         topScreenConsole.bg = SUCCESS_COLOR;
-        print("QTM Disabled Success");
+        print("QTM no Disabled: Success");
     }
 
+	print("Exit: START Button");
+	
 	while (aptMainLoop()){
 		hidScanInput();
-		if (hidKeysDown()){
+		if (hidKeysDown() & KEY_START){
             break;
         }
 	}
