@@ -41,8 +41,8 @@ u32 copyRemoteMemory(Handle hDst, void *ptrDst, Handle hSrc, void *ptrSrc, u32 s
         print("@svcStartInterProcessDma failed: %lu", ret);
         return ret;
     }
-    const u8 timeout = -1;
-    ret = svcWaitSynchronization(hdma, timeout);
+#define COPY_REMOTE_MEMORY_TIMEOUT (100000000)
+    ret = svcWaitSynchronization(hdma, (s64)COPY_REMOTE_MEMORY_TIMEOUT);
     if (ret != 0)
     {
         print("@copyRemoteMemory time out (or error) %lu", ret);
