@@ -13,7 +13,6 @@ void rpDoQTMPatchAndToggle(void);
 void print(char *msg, ...);
 
 // https://rgbcolorpicker.com/0-1
-#define BLACK_COLOR 0b1000
 #define ERROR_COLOR 0b1001
 #define SUCCESS_COLOR 0b1010
 #define WHITE_COLOR 0b1111
@@ -43,7 +42,6 @@ int main(void)
 
     if(qtmDisabled){
         topScreenConsole.bg = SUCCESS_COLOR;
-        consoleClear();
         print("QTM Disabled Success");
     }
 
@@ -53,6 +51,7 @@ int main(void)
             break;
         }
 	}
+    consoleClear();
 	gfxExit();
 	return 0;
 }
