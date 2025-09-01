@@ -17,6 +17,5 @@ jobs:
         with:
           name: ダウンロード
           compression-level: 0
-          path: |
-            N3DS_QTM_Disabled_HomeBrewApplication.3dsx
+          path: N3DS_QTM_Disabled_HomeBrewApplication.3dsx
             
