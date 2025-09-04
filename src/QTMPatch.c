@@ -45,7 +45,7 @@ u32 copyRemoteMemoryTimeout(Handle hDst, void *ptrDst, Handle hSrc, void *ptrSrc
     ret = svcWaitSynchronization(hdma, timeout);
     if (ret != 0)
     {
-        print("copyRemoteMemory time out (or error) %lu" PRIx32, ret);
+        print("copyRemoteMemory time out (or error) %lu", ret);
         svcCloseHandle(hdma);
         return 1;
     }
@@ -75,6 +75,55 @@ typedef enum ProcessOp
 
 Result svcControlProcess(Handle process, ProcessOp op, u32 varg2, u32 varg3);
 
+u32 rtGetPageOfAddress(u32 addr)
+{
+#define PAGE_OF_ADDR(addr) ((addr) / 0x1000 * 0x1000)
+    return PAGE_OF_ADDR(addr);
+}
+
+u32 protectRemoteMemory(Handle hProcess, void *addr, u32 size, u32 perm)
+{
+    return svcControlProcessMemory(hProcess, (u32)addr, 0, size, MEMOP_PROT, perm);
+}
+
+u32 rtCheckRemoteMemory(Handle hProcess, u32 addr, u32 size, MemPerm perm)
+{
+    MemInfo memInfo;
+    PageInfo pageInfo;
+    s32 ret = svcQueryMemory(&memInfo, &pageInfo, addr);
+    if (ret != 0)
+    {
+        print("svcQueryMemory failed for addr %08: %08", addr, ret);
+        return ret;
+    }
+    if (memInfo.perm == 0)
+    {
+        return -1;
+    }
+    if (memInfo.base_addr + memInfo.size < addr + size)
+    {
+        return -1;
+    }
+
+    if (perm & MEMPERM_WRITE)
+        perm |= MEMPERM_READ;
+    if ((memInfo.perm & perm) == perm)
+    {
+        return 0;
+    }
+
+    perm |= memInfo.perm;
+
+    u32 startPage, endPage;
+
+    startPage = rtGetPageOfAddress(addr);
+    endPage = rtGetPageOfAddress(addr + size - 1);
+    size = endPage - startPage + 0x1000;
+
+    ret = protectRemoteMemory(hProcess, (void *)startPage, size, perm);
+    return ret;
+}
+
 void remote_play_DoQTMPatch(void)
 {
 #define QTM_PROCESS 0x15
@@ -87,7 +136,7 @@ void remote_play_DoQTMPatch(void)
     if ((ret = svcOpenProcess(&hProcess, QTM_PROCESS)) != 0)
     {
         print("Open QTM process failed: %lu", ret);
-        return
+        return;
     }
 
     if ((ret = svcControlProcess(hProcess, PROCESSOP_SCHEDULE_THREADS, 1, 0)) != 0)
@@ -114,7 +163,7 @@ void remote_play_DoQTMPatch(void)
         goto final_unlock;
     }
 
-    const u8 payload[RP_QTM_PAYLOAD_SIZE] = {
+    u8 payload[RP_QTM_PAYLOAD_SIZE] = {
         0x01, 0x01, 0xA0, 0xE3, // mov r0, #0x40000000
         0x00, 0x10, 0xA0, 0xE3, // mov r1, #0
         0x0A, 0x00, 0x00, 0xEF, // svc #0xa
