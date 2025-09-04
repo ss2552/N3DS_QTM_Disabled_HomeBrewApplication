@@ -10,8 +10,6 @@
 void remote_play_DoQTMPatch(void);
 void print(char *msg, ...);
 
-static int qtmPatched = 0;
-static int qtmPayloadAddr = 0;
 extern bool qtmDisabled;
 Handle hProcess;
 
@@ -105,9 +103,12 @@ void remote_play_DoQTMPatch(void)
         goto final_unlock;
     }
 
-    const u32 qtmPayloadAddrTry = 0x001abfe0; // QTMの先頭アドレス
+    u32 qtmPayloadAddr = 0x001ac000 - RP_QTM_PAYLOAD_SIZE;
+    print("%0xlu", qtmPayloadAddr);
+    // const u32 qtmPayloadAddr = 0x001abfe0; // QTMの先頭アドレス
+    // 1abfce
 
-    if ((ret = rtCheckRemoteMemory(hProcess, qtmPayloadAddrTry, RP_QTM_PAYLOAD_SIZE, MEMPERM_READWRITE | MEMPERM_EXECUTE)) != 0)
+    if ((ret = rtCheckRemoteMemory(hProcess, qtmPayloadAddr, RP_QTM_PAYLOAD_SIZE, MEMPERM_READWRITE | MEMPERM_EXECUTE)) != 0)
     {
         print("QTM protectRemoteMemory for payload failed: %lu", ret);
         goto final_unlock;
@@ -124,18 +125,14 @@ void remote_play_DoQTMPatch(void)
         0x00, 0xF0, 0x20, 0xE3, // nop
     };
 
-    if ((ret = copyRemoteMemoryTimeout(hProcess, (void *)qtmPayloadAddrTry, CUR_PROCESS_HANDLE, payload, RP_QTM_PAYLOAD_SIZE, COPY_REMOTE_MEMORY_TIMEOUT)) != 0)
+    if ((ret = copyRemoteMemoryTimeout(hProcess, (void *)qtmPayloadAddr, CUR_PROCESS_HANDLE, payload, RP_QTM_PAYLOAD_SIZE, COPY_REMOTE_MEMORY_TIMEOUT)) != 0)
     {
-        print("Write QTM memory for payload at %lu failed: %lu", qtmPayloadAddrTry, ret);
+        print("Write QTM memory for payload at %lu failed: %lu", qtmPayloadAddr, ret);
         goto final_unlock;
     }
 
-    qtmPayloadAddr = qtmPayloadAddrTry;
-
     u32 branchDistance = qtmPayloadAddr - REMOTE_PC;
-
     u32 replacementInst = (branchDistance / 4 - 2) | 0xea000000; // b inst
-
     ret = copyRemoteMemoryTimeout(hProcess, (void *)REMOTE_PC, CUR_PROCESS_HANDLE, &replacementInst, RP_QTM_HDR_SIZE, COPY_REMOTE_MEMORY_TIMEOUT);
     if (ret != 0)
     {
