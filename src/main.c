@@ -9,7 +9,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-void rpDoQTMPatchAndToggle(void);
+void rpDoQTMPatch(void);
 void print(char *msg, ...);
 
 // https://rgbcolorpicker.com/0-1
@@ -26,46 +26,55 @@ PrintConsole topScreenConsole;
 
 int main(void)
 {
-	gfxInitDefault();
-	consoleInit(GFX_TOP, &topScreenConsole);
-	topScreenConsole.bg = ERROR_COLOR;
-	topScreenConsole.fg = WHITE_COLOR;
+    gfxInitDefault();
+    consoleInit(GFX_TOP, &topScreenConsole);
+    topScreenConsole.bg = ERROR_COLOR;
+    topScreenConsole.fg = WHITE_COLOR;
 
     consoleClear();
-	
+
     hidScanInput();
     bool fake_success_screen_show_key = hidKeysHeld() & KEY_A;
-    if(!fake_success_screen_show_key)
-        rpDoQTMPatchAndToggle();
-    else{
+    if (!fake_success_screen_show_key)
+        rpDoQTMPatch();
+    else
+    {
         qtmDisabled = 1;
-        print("Fake Success");
     }
 
-	// qtmを無効にしたら
-    if(qtmDisabled){
+    // qtmを無効にしたら
+    if (qtmDisabled)
+    {
         topScreenConsole.bg = SUCCESS_COLOR;
-        print("QTM: Disabled　Success");
+        consoleClear();
+        print("QTM: Disabled Success");
     }
 
-	print("Exit: START Button");
-	
-	while (aptMainLoop()){
-		hidScanInput();
-		if (hidKeysDown() & KEY_START){
+    if (fake_success_screen_show_key)
+        print("Fake Success");
+    print(" ");
+
+    print("Exit: START Button");
+
+    while (aptMainLoop())
+    {
+        hidScanInput();
+        if (hidKeysDown() & KEY_START)
+        {
             break;
         }
-	}
+    }
     consoleClear();
-	gfxExit();
-	return 0;
+    gfxExit();
+    return 0;
 }
 
 static u8 y = 0;
 
-void print(char *msg, ...){
+void print(char *msg, ...)
+{
     va_list args;
-    char s[100 ] = {0};
+    char s[100] = {0};
     va_start(args, msg);
     vsprintf(s, msg, args);
     printf("\x1b[%u;1H %s", ++y, s);
