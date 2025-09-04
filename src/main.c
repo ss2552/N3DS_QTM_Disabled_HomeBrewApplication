@@ -9,7 +9,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-void rpDoQTMPatch(void);
+void remote_play_DoQTMPatch(void);
 void print(char *msg, ...);
 
 // https://rgbcolorpicker.com/0-1
@@ -36,7 +36,7 @@ int main(void)
     hidScanInput();
     bool fake_success_screen_show_key = hidKeysHeld() & KEY_A;
     if (!fake_success_screen_show_key)
-        rpDoQTMPatch();
+        remote_play_DoQTMPatch();
     else
     {
         qtmDisabled = 1;
