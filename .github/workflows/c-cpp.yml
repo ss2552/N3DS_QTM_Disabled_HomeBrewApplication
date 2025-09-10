@@ -1,7 +1,8 @@
 name: C/C++ CI
 
 on:
-  workflow_dispatch:
+  push:
+    branches: "lite"
   
 jobs:
   build:
@@ -15,7 +16,7 @@ jobs:
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: ダウンロード
+          name: download
           compression-level: 0
           path: N3DS_QTM_Disabled_HomeBrewApplication.3dsx
             
