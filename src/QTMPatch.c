@@ -131,7 +131,7 @@ void remote_play_DoQTMPatch(void)
 #define RP_QTM_HDR_SIZE (4)
 #define RP_QTM_PAYLOAD_SIZE (32)
 
-    // rt == リグレッションテスト？
+    // rt == リソース タイプ
 
     if ((ret = svcOpenProcess(&hProcess, QTM_PROCESS)) != 0)
     {
@@ -154,7 +154,7 @@ void remote_play_DoQTMPatch(void)
 
     u32 qtmPayloadAddr = 0x001ac000 - RP_QTM_PAYLOAD_SIZE;
     // エラー const u32 qtmPayloadAddr = 0x001abfe0; // QTMの先頭アドレス
-    // 1abfce
+    // const u32 qtmPayloadAddr = 1abfce
 
     {// rtCheckRemoteMemory
         u32 addr = qtmPayloadAddr;
@@ -163,14 +163,13 @@ void remote_play_DoQTMPatch(void)
         
         MemInfo memInfo;
         PageInfo pageInfo;
-        s32 ret = svcQueryMemory(&memInfo, &pageInfo, addr);
-    
-        if (ret != 0){
+
+        if ((ret = svcQueryMemory(&memInfo, &pageInfo, addr)) != 0){
             print("svcQueryMemory failed for addr %08: %08", addr, ret);
             goto final_unlock;
         }
         
-        // perm |= memInfo.perm;
+        perm |= memInfo.perm;
         
         u32 startPage, endPage;
 
@@ -183,7 +182,7 @@ void remote_play_DoQTMPatch(void)
             
             void *addr = (void *)startPage;
             
-            if ( svcControlProcessMemory(hProcess, (u32)addr, 0, size, MEMOP_PROT, perm) != 0){
+            if ((ret = svcControlProcessMemory(hProcess, (u32)addr, 0, size, MEMOP_PROT, perm) != 0){
                 print("FATAIL: %lu", ret);
                 goto final_unlock;
             }
