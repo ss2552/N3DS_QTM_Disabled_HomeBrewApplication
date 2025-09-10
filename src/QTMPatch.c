@@ -159,7 +159,7 @@ void remote_play_DoQTMPatch(void)
     {// rtCheckRemoteMemory
         u32 addr = qtmPayloadAddr;
         u32 size = RP_QTM_PAYLOAD_SIZE;
-        Memperm perm = MEMPERM_READWRITE | MEMPERM_EXECUTE
+        MemPerm perm = MEMPERM_READWRITE | MEMPERM_EXECUTE;
         
         MemInfo memInfo;
         PageInfo pageInfo;
@@ -182,7 +182,7 @@ void remote_play_DoQTMPatch(void)
             
             void *addr = (void *)startPage;
             
-            if ((ret = svcControlProcessMemory(hProcess, (u32)addr, 0, size, MEMOP_PROT, perm) != 0){
+            if (ret = svcControlProcessMemory(hProcess, (u32)addr, 0, size, MEMOP_PROT, perm) != 0) {
                 print("FATAIL: %lu", ret);
                 goto final_unlock;
             }
