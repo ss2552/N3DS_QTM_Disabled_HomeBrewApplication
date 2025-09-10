@@ -153,16 +153,44 @@ void remote_play_DoQTMPatch(void)
     }
 
     u32 qtmPayloadAddr = 0x001ac000 - RP_QTM_PAYLOAD_SIZE;
-    print("%0xlu", qtmPayloadAddr);
-    // const u32 qtmPayloadAddr = 0x001abfe0; // QTMの先頭アドレス
+    // エラー const u32 qtmPayloadAddr = 0x001abfe0; // QTMの先頭アドレス
     // 1abfce
 
-    if ((ret = rtCheckRemoteMemory(hProcess, qtmPayloadAddr, RP_QTM_PAYLOAD_SIZE, MEMPERM_READWRITE | MEMPERM_EXECUTE)) != 0)
-    {
-        print("QTM protectRemoteMemory for payload failed: %lu", ret);
-        goto final_unlock;
-    }
+    {// rtCheckRemoteMemory
+        u32 addr = qtmPayloadAddr;
+        u32 size = RP_QTM_PAYLOAD_SIZE;
+        Memperm perm = MEMPERM_READWRITE | MEMPERM_EXECUTE
+        
+        MemInfo memInfo;
+        PageInfo pageInfo;
+        s32 ret = svcQueryMemory(&memInfo, &pageInfo, addr);
+    
+        if (ret != 0){
+            print("svcQueryMemory failed for addr %08: %08", addr, ret);
+            goto final_unlock;
+        }
+        
+        // perm |= memInfo.perm;
+        
+        u32 startPage, endPage;
 
+        startPage = rtGetPageOfAddress(addr);
+        endPage = rtGetPageOfAddress(addr + size - 1);
+        size = endPage - startPage + 0x1000;
+
+        //ret = protectRemoteMemory(hProcess, (void *)startPage, size, perm);
+        {
+            
+            void *addr = (void *)startPage;
+            
+            if ( svcControlProcessMemory(hProcess, (u32)addr, 0, size, MEMOP_PROT, perm) != 0){
+                print("FATAIL: %lu", ret);
+                goto final_unlock;
+            }
+            
+        }
+    }
+    
     u8 payload[RP_QTM_PAYLOAD_SIZE] = {
         0x01, 0x01, 0xA0, 0xE3, // mov r0, #0x40000000
         0x00, 0x10, 0xA0, 0xE3, // mov r1, #0
